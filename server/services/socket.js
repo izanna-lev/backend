@@ -1,4 +1,5 @@
 /* eslint-disable no-unused-vars */
+/* eslint-disable no-await-in-loop */
 /* eslint-disable import/no-unresolved */
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable consistent-return */
@@ -12,7 +13,7 @@ import { Types } from 'mongoose';
 import { EventEmitter } from 'events';
 import {
 	LATEST_LIMIT,
-	TYPE_OF_NOTIFICATIONS, USER_TYPE,
+	TYPE_OF_NOTIFICATIONS, USER_TYPE, DISCONNECT_TIMEOUT,
 } from '../constants';
 import {
 	ChannelToUserModel,
@@ -27,31 +28,50 @@ import { ChatModel, NotificationModel as NotificationsModel } from '../model';
 
 const connector = new EventEmitter();
 
-// connector.on('push', (payload) => {
-// 	global.logger.info('Push Connector Initialized!');
-// });
-
 exports.connector = connector;
 
 exports.startSocket = socket => new Promise(async (resolve, reject) => {
 	try {
+		global.logger.info(`Connected. ${socket.id}`);
 		const admin = await AdminModel.findOne({});
 		const chats = await ChatModel.ChatList;
-		global.logger.info(`Connected. ${socket.id}`);
 		const notifications = await NotificationsModel.NotificationSpecialistListService;
-		const { id } = socket.decoded.data;
-		// connector.on('push', async (payload) => {
-		// 	global.logger.info('Push Connector Listening!');
-		// 	global.logger.info('payload', payload);
-		// 	if ((payload && payload.webUser
-		// 		&& payload.webUser.find(checkUser => checkUser.valueOf() === id))
-		// 	|| (payload && payload.userRef === id)) {
-		// 		global.logger.info('Event Created!');
-		// 		const notes = await notifications({ id });
-		// 		io.sockets.in(id).emit('notificationList', { data: { list: notes.data.list, totalUnread: notes.data.totalUnread } });
-		// 	}
-		// });
+		if (connector.listenerCount('push') === 0) {
+			connector.on('push', async (payload) => {
+				global.logger.info('Push Connector Listening!');
+				global.logger.info('payload', payload);
+				if (payload && payload.userRef && !payload.webUser) {
+					global.logger.info('Push Event Created!');
+					const data = await NotificationModel.find(
+						{ userRef: payload.userRef },
+					).sort({ createdOn: -1 }).limit(LATEST_LIMIT);
+					const available = io.sockets.adapter.rooms[payload.userRef.valueOf()];
+					socket.join(payload.userRef.valueOf());
+					const total = data.some(notification => notification.seen === false);
+					io.sockets.in(payload.userRef).emit('notificationList', { data: { list: data, totalUnread: total } });
+					if (!available) {
+						socket.leave(payload.userRef);
+					}
+				} else if (payload && payload.webUser.length) {
+					global.logger.info('Event Created!');
+					for (let i = 0; i < payload.webUser.length; i += 1) {
+						const available = io.sockets.adapter.rooms[payload.webUser[i].valueOf()];
+						socket.join(payload.webUser[i].valueOf());
+						const data = await NotificationModel.find(
+							{ userRef: payload.webUser[i] },
+						).sort({ createdOn: -1 }).limit(LATEST_LIMIT);
+						const total = data.some(notification => notification.seen === false);
+						io.sockets.in(payload.webUser[i].valueOf()).emit('notificationList', { data: { list: data, totalUnread: total } });
+						if (!available) {
+							socket.leave(payload.webUser[i].valueOf());
+						}
+					}
+				}
+			});
+		}
+
 		socket.on('subscribe_channel', async (data, callback) => {
+			global.logger.info('Subscribe channel!');
 			if (!callback) {
 				callback = function (message) {
 					return message;
@@ -78,6 +98,7 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 		});
 
 		socket.on('unsubscribe_channel', async (data, callback) => {
+			global.logger.info('Unsubscribe channel!');
 			if (!callback) {
 				callback = function (message) {
 					return message;
@@ -123,6 +144,7 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 		});
 
 		socket.on('subscribe_user', async (data, callback) => {
+			global.logger.info('Subscribe User!');
 			if (!callback) {
 				callback = function () {
 				};
@@ -140,11 +162,12 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 		});
 
 		socket.on('message', async (data, callback) => {
-			console.log('listening!');
+			global.logger.info('Message!');
 			if (!callback) {
 				callback = function () {
 				};
 			}
+
 			if (data.channelRef && data.message) {
 				const messageObject = new MessageModel({
 					userRef: data.id,
@@ -171,7 +194,6 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 					messageType: data.messageType,
 					channelRef: data.channelRef,
 				};
-				console.log('socketData', socketData);
 				const [itinerary] = await ItineraryModel.aggregate([
 					{ $match: { _id: Types.ObjectId(data.channelRef) } },
 					{
@@ -249,29 +271,39 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 						},
 					},
 				]);
+				console.log('itinerary', itinerary);
 				let userQuery = '';
 				let otherUserQuery = '';
+				let adminOnly = false;
+				const otherUserMatchQuery = [Types.ObjectId(data.id)];
 				let userType;
 				if (itinerary.traveller._id.valueOf() === data.id) {
-					console.log('Sender is traveller!');
 					userQuery = 'travellers';
 					otherUserQuery = 'specialists';
+					if (itinerary.specialist) {
+						otherUserMatchQuery.push(admin._id);
+					}
+					if (!itinerary.specialistRef) {
+						adminOnly = true;
+					}
 					userType = USER_TYPE.TRAVELLER;
 					socketData.traveller = {
 						name: itinerary.name,
 						image: itinerary.traveller.image,
 					};
 				} else if (admin._id.valueOf() === data.id) {
-					console.log('Sender is admin!');
 					userQuery = 'specialists';
 					otherUserQuery = 'travellers';
+					if (itinerary.specialist) {
+						otherUserMatchQuery.push(itinerary.specialistRef);
+					}
 					userType = USER_TYPE.ADMIN;
 					socketData.admin = { name: 'Admin' };
 				} else {
-					console.log('Sender is specialist!');
 					userQuery = 'specialists';
 					otherUserQuery = 'travellers';
 					userType = USER_TYPE.SPECIALIST;
+					otherUserMatchQuery.push(admin._id);
 					socketData.specialist = {
 						name: itinerary.specialist.name,
 						image: itinerary.specialist.image,
@@ -306,22 +338,21 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 						},
 					},
 					{
-						$unwind: { path: '$user' },
+						$unwind: { path: '$user', preserveNullAndEmptyArrays: true },
 					},
 					{
 						$project: {
-							_id: '$user._id',
-							name: { $cond: [{ $eq: [userQuery, 'specialists'] }, '$user.name', itinerary.name] },
-							image: '$user.image',
+							_id: { $cond: [{ $eq: [userQuery, 'specialists'] }, { $cond: [{ $or: [{ $eq: [{ $not: itinerary.specialist }, true] }, { $eq: [data.id, admin._id.valueOf()] }] }, admin._id, '$user._id'] }, '$user._id'] },
+							name: { $cond: [{ $eq: [userQuery, 'specialists'] }, { $cond: [{ $or: [{ $eq: [{ $not: itinerary.specialist }, true] }, { $eq: [data.id, admin._id.valueOf()] }] }, 'Admin', '$user.name'] }, itinerary.name] },
+							image: { $cond: [{ $eq: [userQuery, 'specialists'] }, { $cond: [{ $or: [{ $eq: [{ $not: itinerary.specialist }, true] }, { $eq: [data.id, admin._id.valueOf()] }] }, '', '$user.image'] }, '$user.image'] },
 						},
 					},
 				]);
-				console.log('user', user);
 				const [otherUser] = await ChannelToUserModel.aggregate([
 					{
 						$match: {
 							channelRef: Types.ObjectId(data.channelRef),
-							userRef: { $nin: [Types.ObjectId(data.id), Types.ObjectId(admin._id.valueOf())] },
+							userRef: { $nin: otherUserMatchQuery },
 						},
 					},
 					{
@@ -345,18 +376,18 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 						},
 					},
 					{
-						$unwind: { path: '$user' },
+						$unwind: { path: '$user', preserveNullAndEmptyArrays: true },
 					},
 					{
 						$project: {
-							_id: '$user._id',
-							name: { $cond: [{ $ne: [userQuery, 'travellers'] }, '$user.name', itinerary.name] },
-							image: '$user.image',
+							_id: { $cond: [{ $eq: [otherUserQuery, 'travellers'] }, '$user._id', { $cond: [{ $eq: [{ $not: itinerary.specialist }, true] }, admin._id, '$user._id'] }] },
+							name: { $cond: [{ $eq: [otherUserQuery, 'travellers'] }, itinerary.name, { $cond: [{ $eq: [{ $not: itinerary.specialist }, true] }, 'Admin', '$user.name'] }] },
 							fcmToken: '$user.fcmToken',
 							device: '$user.device',
 						},
 					},
 				]);
+				console.log('user', user);
 				console.log('otherUser', otherUser);
 				io.sockets.in(data.channelRef).emit('message', socketData);
 				io.to(otherUser._id).emit('message', socketData);
@@ -372,27 +403,21 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 					}).then((chat) => {
 						io.sockets.in(itinerary.specialistRef.valueOf()).emit('chatList', { data: chat.data, totalUnseenChats: chat.totalUnseenChats });
 					});
-					notifications({
-						id: itinerary.specialistRef,
-					}).then((note) => {
-						io.sockets.in(itinerary.specialistRef.valueOf()).emit('notificationList', { data: { list: note.data.list, totalUnread: note.data.totalUnread } });
-					});
 				}
 				chats({
 					id: admin._id, type: 'admin',
 				}).then((chat) => {
 					io.sockets.in(admin._id.valueOf()).emit('chatList', { data: chat.data, totalUnseenChats: chat.totalUnseenChats });
 				});
-				const sender = data.id === admin._id.valueOf() ? 'Admin' : user.name;
 				if (!checkBlock) {
-					if (otherUser) {
-						const notification = await NotificationModel({
+					if (otherUser && adminOnly === false) {
+						const notification = new NotificationModel({
 							userRef: otherUser._id,
 							type: TYPE_OF_NOTIFICATIONS.MESSAGE,
-							image: data.id === admin._id.valueOf() ? '' : user.image,
+							image: user.image,
 							sourceRef: data.channelRef,
 							notificationFrom: data.id,
-							text: `${sender} sent you a message.`,
+							text: `${user.name} sent you a message.`,
 							userDetails: itinerary.specialistRef ? {
 								id: itinerary.specialistRef,
 								name: itinerary.specialist.name,
@@ -400,7 +425,7 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 						});
 						notification.save();
 						if (otherUser.fcmToken) {
-							await FirebaseNotificationService({
+							FirebaseNotificationService({
 								deviceTokens: [otherUser.fcmToken],
 								device: otherUser.device,
 								type: TYPE_OF_NOTIFICATIONS.MESSAGE,
@@ -412,7 +437,7 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 									channelRef: data.channelRef,
 									user: {
 										_id: data.id,
-										name: sender,
+										name: user.name,
 									},
 								},
 								userDetails: itinerary.specialistRef ? {
@@ -449,11 +474,13 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 				io.sockets.in(admin._id.valueOf()).emit('chatList', { data: chat.data, totalUnseenChats: chat.totalUnseenChats });
 			});
 		});
-		// socket.on('disconnect', async () => {
-		// 	global.logger.info('DISCONNECTED');
-		// });
+
+		socket.on('disconnect', async (reason) => {
+			global.logger.info('DISCONNECTED');
+		});
 		// global.io = io;
 	} catch (err) {
+		console.log('err', err);
 		// global.logger.info(`Some error occured while initializing socket.: ${err}`);
 		return ('Some error occured while initializing socket.');
 	}

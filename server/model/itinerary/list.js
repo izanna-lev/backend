@@ -4,8 +4,12 @@
 import { ResponseUtility } from 'appknit-backend-bundle';
 import { Types } from 'mongoose';
 import { ItineraryRequestModel, ItineraryModel } from '../../schemas';
-import { ITINERARY_STATUS, PAGINATION_LIMIT } from '../../constants';
-
+import {
+	HYPHEN,
+	ITINERARY_STATUS,
+	MONTH_ARRAY,
+	PAGINATION_LIMIT,
+} from '../../constants';
 
 /**
 * @description service model function to fetch the listing of all the assigned itineraries & details
@@ -181,8 +185,30 @@ export default ({
 					travellerEmail: '$traveller.email',
 					location: '$location',
 					travellers: '$travellers',
-					plannedDate: '$plannedDate',
-					endDate: '$endDate',
+					plannedDate: {
+						$concat: [{
+							$toString: { $dayOfMonth: '$plannedDate' },
+						}, HYPHEN, {
+							$arrayElemAt: [
+								MONTH_ARRAY,
+								{ $month: '$plannedDate' },
+							],
+						}, HYPHEN, {
+							$toString: { $year: '$plannedDate' },
+						}],
+					},
+					endDate: {
+						$concat: [{
+							$toString: { $dayOfMonth: '$plannedDate' },
+						}, HYPHEN, {
+							$arrayElemAt: [
+								MONTH_ARRAY,
+								{ $month: '$plannedDate' },
+							],
+						}, HYPHEN, {
+							$toString: { $year: '$plannedDate' },
+						}],
+					},
 					plannedTraveller: '$plannedTraveller',
 					itineraryRef: { $ifNull: ['$itinerary._id', ''] },
 					image: '$itinerary.image',
@@ -231,11 +257,6 @@ export default ({
 						await ItineraryModel.updateOne(
 							{ _id: data.list[i].itineraryRef },
 							{ itineraryStatus: data.list[i].updatedStatus },
-						);
-					} else {
-						await ItineraryRequestModel.updateOne(
-							{ _id: data.list[i]._id },
-							{ status: data.list[i].updatedStatus },
 						);
 					}
 				}

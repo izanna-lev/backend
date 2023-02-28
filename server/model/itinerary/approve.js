@@ -8,14 +8,21 @@ import {
 	ResponseUtility,
 } from 'appknit-backend-bundle';
 
-import { ITINERARY_STATUS, PAYMENT_STATUS, TRANSACTION_TYPE } from '../../constants';
+import {
+	ITINERARY_STATUS, PAYMENT_STATUS, TRANSACTION_TYPE,
+	//  TYPE_OF_NOTIFICATIONS
+} from '../../constants';
 import {
 	ItineraryModel,
 	TravellerModel,
 	TransactionModel,
 	CardModel,
+	// NotificationModel,
 } from '../../schemas';
-import { StripeService } from '../../services';
+import { StripeService, 
+	// FirebaseNotificationService 
+} from '../../services';
+
 /**
 * @description service model function to handle the completion of itinerary.
 * @param {String} itineraryRef the unique _id of the itinerary.
@@ -96,6 +103,33 @@ export default ({
 			},
 		);
 
+		// const notification = new NotificationModel({
+		// 	userRef: itineraryUpdate.travellerRef,
+		// 	type: TYPE_OF_NOTIFICATIONS.APPROVED,
+		// 	sourceRef: itineraryUpdate._id,
+		// 	image: '',
+		// 	notificationFrom: itineraryUpdate.adminRef,
+		// 	text: `The amount was debited from your card for the itinerary ${itineraryUpdate.location.location}`,
+		// });
+
+		// await notification.save();
+
+		// if (traveller.fcmToken && traveller.device) {
+		// 	await FirebaseNotificationService({
+		// 		deviceTokens: [traveller.fcmToken],
+		// 		device: traveller.device,
+		// 		type: TYPE_OF_NOTIFICATIONS.APPROVED,
+		// 		body: notification.text,
+		// 		payload: {
+		// 			body: notification.text,
+		// 			notificationFrom: itineraryUpdate.adminRef,
+		// 			userRef: traveller._id,
+		// 			itineraryRef: itineraryUpdate._id,
+		// 		},
+		// 		reference: notification._id,
+		// 		title: 'Onsite',
+		// 	});
+		// }
 		return resolve(ResponseUtility.SUCCESS({
 			message: 'itinerary approved',
 			data: itineraryUpdate,

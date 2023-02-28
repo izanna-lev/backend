@@ -24,11 +24,11 @@ export default ({
 		if (!itineraryRef) {
 			return reject(ResponseUtility.GENERIC_ERR({ message: 'Missing property itineraryRef!' }));
 		}
-		const { zone } = type === 'specialist' ? await SpecialistModel.findOne({ _id: id }) : await AdminModel.findOne({ _id: id });
+		// const { zone } = type === 'specialist' ? await SpecialistModel.findOne({ _id: id }) : await AdminModel.findOne({ _id: id });
 		const { fromDate, toDate } = await ItineraryModel.findOne({ _id: itineraryRef });
 		let duration;
-		const calculateDay = (new Date(new Date(toDate).toLocaleString('en-US', { timeZone: zone })).getTime() - new Date(new Date(fromDate).toLocaleString('en-US', { timeZone: zone })).getTime()) / (1000 * 3600 * 24);
-		if ((new Date(new Date(toDate).toLocaleString('en-US', { timeZone: zone })).getTime() - new Date(new Date(fromDate).toLocaleString('en-US', { timeZone: zone })).getTime()) / (1000 * 3600 * 24) === 0) {
+		const calculateDay = (new Date(new Date(toDate).toLocaleString('en-US')).getTime() - new Date(new Date(fromDate).toLocaleString('en-US')).getTime()) / (1000 * 3600 * 24);
+		if ((new Date(new Date(toDate).toLocaleString('en-US')).getTime() - new Date(new Date(fromDate).toLocaleString('en-US')).getTime()) / (1000 * 3600 * 24) === 0) {
 			duration = 1;
 		} else {
 			duration = calculateDay + 1;

@@ -30,7 +30,7 @@ export default ({
 	id,
 	itineraryRef,
 	date,
-	timezone,
+	// timezone,
 }) => new Promise(async (resolve, reject) => {
 	try {
 		if (!itineraryRef) {
@@ -174,7 +174,7 @@ export default ({
 												startDate: '$departDateTime',
 												endDate: '$arrivalDateTime',
 												unit: 'millisecond',
-												timezone,
+												// timezone,
 											},
 										}, MILLISECOND_EQUIVALENT],
 									},
@@ -187,7 +187,7 @@ export default ({
 													startDate: '$departDateTime',
 													endDate: '$arrivalDateTime',
 													unit: 'millisecond',
-													timezone,
+													// timezone,
 												},
 											}, MILLISECOND_EQUIVALENT],
 										}, 0],
@@ -204,7 +204,7 @@ export default ({
 																startDate: '$departDateTime',
 																endDate: '$arrivalDateTime',
 																unit: 'millisecond',
-																timezone,
+																// timezone,
 															},
 														}, MILLISECOND_EQUIVALENT],
 													},
@@ -216,7 +216,7 @@ export default ({
 																	startDate: '$departDateTime',
 																	endDate: '$arrivalDateTime',
 																	unit: 'millisecond',
-																	timezone,
+																	// timezone,
 																},
 															}, MILLISECOND_EQUIVALENT],
 														}, 0],
@@ -324,7 +324,7 @@ export default ({
 							}, {
 								$dateToString: {
 									date: '$itinerary.departDateTime',
-									timezone,
+									// timezone,
 								},
 							}, '$$REMOVE'],
 					},
@@ -339,7 +339,7 @@ export default ({
 							}, {
 								$dateToString: {
 									date: '$itinerary.arrivalDateTime',
-									timezone,
+									// timezone,
 								},
 							}, '$$REMOVE'],
 					},
@@ -353,7 +353,7 @@ export default ({
 							}, {
 								$dateToString: {
 									date: '$itinerary.reservationDateTime',
-									timezone,
+									// timezone,
 								},
 							}, '$$REMOVE'],
 					},
@@ -366,7 +366,7 @@ export default ({
 							}, {
 								$dateToString: {
 									date: '$itinerary.checkOutDateTime',
-									timezone,
+									// timezone,
 								},
 							}, '$$REMOVE'],
 					},
@@ -379,7 +379,7 @@ export default ({
 							}, {
 								$dateToString: {
 									date: '$itinerary.checkInDateTime',
-									timezone,
+									// timezone,
 								},
 							}, '$$REMOVE'],
 					},
@@ -394,7 +394,7 @@ export default ({
 							$toDate: {
 								$dateToString: {
 									date: '$itinerary.date',
-									timezone,
+									// timezone,
 								},
 							},
 						}],
@@ -422,12 +422,12 @@ export default ({
 									$eq: [{
 										$dateToString: {
 											date: '$itinerary.departDateTime',
-											timezone,
+											// timezone,
 										},
 									}, {
 										$dateToString: {
 											date: '$itinerary.date',
-											timezone,
+											// timezone,
 										},
 									}],
 								}, '$itinerary.depart.location', '$itinerary.arrival.location'],
@@ -447,12 +447,12 @@ export default ({
 									$eq: [{
 										$dateToString: {
 											date: '$itinerary.departDateTime',
-											timezone,
+											// timezone,
 										},
 									}, {
 										$dateToString: {
 											date: '$itinerary.date',
-											timezone,
+											// timezone,
 										},
 									}],
 								}, '$itinerary.depart.coordinates', '$itinerary.arrival.coordinates'],
@@ -542,7 +542,7 @@ export default ({
 													startDate: '$$setDate',
 													unit: 'day',
 													amount: '$$this',
-													timezone,
+													// timezone,
 												},
 											},
 											format: '%Y-%m-%d',

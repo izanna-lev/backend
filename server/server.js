@@ -21,6 +21,7 @@ import {
 	LogServices, TokenUtility,
 } from 'appknit-backend-bundle';
 import ActivateRoutes from './routes';
+// import { SessionModel } from './schemas';
 import { startSocket } from './services/socket';
 import {
 	CERT,
@@ -57,18 +58,22 @@ app.use(flash());
 ActivateRoutes(app);
 
 const appHttpsServer = app;
+
 const options = {
 	key: Buffer.from(PRIVATE_KEY, 'base64').toString('ascii'),
 	cert: Buffer.from(CERT, 'base64').toString('ascii'),
 	keepAlive: true,
 };
+
 options.agent = new https.Agent(options);
+
 const httpsServer = https.createServer(options,
 	appHttpsServer).listen(4000, () => {
 	console.log('Secure server is runing at port 4000');
 });
 // const httpsServer = http.createServer(
-// 	appHttpsServer).listen(4000, () => {
+// 	appHttpsServer,
+// ).listen(4000, () => {
 // 	console.log('Secure server is runing at port 4000');
 // });
 const env = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
@@ -82,13 +87,17 @@ const io = require('socket.io')(httpsServer, {
 
 io.adapter(redis({ host: REDIS_HOST, port: REDIS_PORT, auth_pass: REDIS_PASSWORD }));
 
+// const processedMessages = new Set();
+// const activeConnections = new Map();
+
 io.use((socket, next) => {
 	if (socket.handshake.auth || socket.handshake.query.authorization
 				|| socket.handshake.headers.authorization) {
 		const decoded = TokenUtility.decodeToken(socket.handshake.auth.token
 						|| socket.handshake.headers.authorization);
 		if (decoded) {
-			socket.decoded = decoded;
+			// socket.processedMessages = processedMessages;
+			// socket.activeConnections = activeConnections;
 			return next();
 		}
 		return next(new Error('authentication error'));

@@ -66,7 +66,7 @@ export default ({
 
 
 		const specialist = await SpecialistModel.findOne({ _id: specialistRef });
-		const notification = await NotificationModel({
+		const notification = new NotificationModel({
 			userRef: specialistRef,
 			type: TYPE_OF_NOTIFICATIONS.ASSIGN_SPECIALIST,
 			sourceRef: formRef,

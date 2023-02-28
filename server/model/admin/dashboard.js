@@ -7,7 +7,8 @@ import {
 	ResponseUtility,
 } from 'appknit-backend-bundle';
 import {
-	ItineraryRequestModel, AdminModel,
+	ItineraryRequestModel, 
+	// AdminModel,
 } from '../../schemas';
 import {
 	ITINERARY_STATUS,
@@ -21,11 +22,11 @@ import {
 
 export default ({
 	id,
-	timezone,
+	// timezone,
 }) => new Promise(async (resolve, reject) => {
 	try {
 		// console.time('test');
-		await AdminModel.findOneAndUpdate({ _id: id }, { $set: { zone: timezone } });
+		// await AdminModel.findOneAndUpdate({ _id: id }, { $set: { zone: timezone } });
 		const [data] = await ItineraryRequestModel.aggregate([
 			{
 				$lookup: {

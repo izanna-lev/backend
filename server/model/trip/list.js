@@ -1,10 +1,11 @@
 /* eslint-disable import/named */
 import { ResponseUtility } from 'appknit-backend-bundle';
 import { Types } from 'mongoose';
-import { ItineraryModel, SpecialistModel, AdminModel } from '../../schemas';
+import { ItineraryModel } from '../../schemas';
 import {
-	PAGINATION_LIMIT, DEFAULT_DAY, RESERVATION_TYPE, TRANSPORTATION_TYPE,
+	PAGINATION_LIMIT, DEFAULT_DAY, RESERVATION_TYPE, TRANSPORTATION_TYPE, ZERO, HYPHEN, MONTH_ARRAY,
 } from '../../constants';
+
 /**
 * @description service model function to fetch the listing of
 * all the trip summary of a specific Itinerary with Day Filter.
@@ -15,8 +16,6 @@ import {
 */
 
 export default ({
-	id,
-	type,
 	itineraryRef,
 	dayFilter = DEFAULT_DAY,
 	page = 1,
@@ -26,9 +25,6 @@ export default ({
 		if (!itineraryRef) {
 			return reject(ResponseUtility.GENERIC_ERR({ message: 'Missing prop itineraryRef' }));
 		}
-		const value = type === 'specialist'
-			? await SpecialistModel.findOne({ _id: id })
-			: await AdminModel.findOne({ _id: id });
 
 		const [data] = await ItineraryModel.aggregate([
 			{
@@ -143,7 +139,6 @@ export default ({
 											startDate: '$fromDate',
 											endDate: '$$transportation.departDateTime',
 											unit: 'day',
-											timezone: value.zone,
 										},
 									}, 1],
 								},
@@ -173,7 +168,6 @@ export default ({
 											startDate: '$fromDate',
 											endDate: '$$transportation.arrivalDateTime',
 											unit: 'day',
-											timezone: value.zone,
 										},
 									}, 1],
 								},
@@ -203,7 +197,6 @@ export default ({
 											startDate: '$fromDate',
 											endDate: '$$transportation.departDateTime',
 											unit: 'day',
-											timezone: value.zone,
 										},
 									}, 1],
 								},
@@ -233,7 +226,6 @@ export default ({
 											startDate: '$fromDate',
 											endDate: '$$reservation.checkInDateTime',
 											unit: 'day',
-											timezone: value.zone,
 										},
 									}, 1],
 								},
@@ -263,7 +255,6 @@ export default ({
 											startDate: '$fromDate',
 											endDate: '$$reservation.checkOutDateTime',
 											unit: 'day',
-											timezone: value.zone,
 										},
 									}, 1],
 								},
@@ -293,7 +284,6 @@ export default ({
 											startDate: '$fromDate',
 											endDate: '$$reservation.reservationDateTime',
 											unit: 'day',
-											timezone: value.zone,
 										},
 									}, 1],
 								},
@@ -323,7 +313,6 @@ export default ({
 											startDate: '$fromDate',
 											endDate: '$$reservation.reservationDateTime',
 											unit: 'day',
-											timezone: value.zone,
 										},
 									}, 1],
 								},
@@ -347,13 +336,11 @@ export default ({
 												$dateAdd: {
 													startDate: '$fromDate',
 													unit: 'day',
-													amount: '$$note.day',
-													timezone: value.zone,
+													amount: { $add: ['$$note.day', 1] },
 												},
 											}, 1],
 										},
 										unit: 'day',
-										timezone: value.zone,
 									},
 								},
 								image: '$$note.image',
@@ -396,7 +383,67 @@ export default ({
 					title: '$tripSummary.title',
 					day: '$tripSummary.day',
 					image: '$tripSummary.image',
-					dateTime: '$tripSummary.dateTime',
+					date: {
+						$concat: [{
+							$toString: { $dayOfMonth: '$tripSummary.dateTime' },
+						}, HYPHEN, {
+							$arrayElemAt: [
+								MONTH_ARRAY,
+								{ $month: '$tripSummary.dateTime' },
+							],
+						}, HYPHEN, {
+							$toString: { $year: '$tripSummary.dateTime' },
+						}],
+					},
+					time: {
+						$concat: [{
+							$toString: {
+								$cond: [{
+									$gt: [{
+										$hour: {
+											date: '$tripSummary.dateTime',
+										},
+									}, 12],
+								}, {
+									$cond: [{
+										$gt: [{
+											$subtract: [{
+												$hour: {
+													date: '$tripSummary.dateTime',
+												},
+											}, 12],
+										}, 9],
+									}, {
+										$subtract: [{
+											$hour: {
+												date: '$tripSummary.dateTime',
+											},
+										}, 12],
+									}, {
+										$concat: [ZERO, {
+											$toString: {
+												$subtract: [{
+													$hour: {
+														date: '$tripSummary.dateTime',
+													},
+												}, 12],
+											},
+										}],
+									}],
+								}, { $dateToString: { format: '%H', date: '$tripSummary.dateTime' } }],
+							},
+						}, ':', {
+							$concat: [{ $dateToString: { format: '%M', date: '$tripSummary.dateTime' } }, ' ', {
+								$cond: [{
+									$gte: [{
+										$hour: {
+											date: '$tripSummary.dateTime',
+										},
+									}, 12],
+								}, 'PM', 'AM'],
+							}],
+						}],
+					},
 					description: '$tripSummary.description',
 				},
 			},

@@ -107,6 +107,7 @@ export const TYPE_OF_NOTIFICATIONS = {
 	ASSIGN_SPECIALIST: 5,
 	ITINERARY_SUBMITTED: 6,
 	SPECIALIST: 7,
+	APPROVED: 8,
 };
 
 export const USER_TYPE = {
@@ -236,7 +237,9 @@ export const DATE_TYPE = {
 };
 
 export const HOUR = 60;
+
 export const MILLISECOND_EQUIVALENT = 1000 * 60 * 60;
+
 export const ITINERARY_DEFAULT_VALUES = 0;
 
 export const NOTIFICATION_TEMPLATES = {
@@ -249,3 +252,13 @@ export const NOTIFICATION_TEMPLATES = {
 };
 
 export const LATEST_LIMIT = 15;
+
+export const DISCONNECT_TIMEOUT = 5000;
+
+export const MONTH_ARRAY = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+export const HYPHEN = '-';
+
+export const NINE = 9;
+
+export const ZERO = '0';

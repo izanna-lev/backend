@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable import/named */
 /* eslint-disable consistent-return */
 /* eslint-disable import/no-extraneous-dependencies */
@@ -61,6 +62,7 @@ export default ({
 			},
 		};
 		Object.assign(payloadData, { notification: data });
+
 		const options = {
 			url: 'https://fcm.googleapis.com/fcm/send',
 			method: 'POST',

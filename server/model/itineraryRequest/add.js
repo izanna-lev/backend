@@ -18,7 +18,8 @@ import {
 * @param {String} phoneCode the phoneCode of contact number for the itinerary.
 * @param {Number} travellers the number of travellers.
 * @param {Number} plannedTraveller the planning of the traveller for the itinerary.
-* @param {Number} plannedDate the planned date for travel for the itinerary.
+* @param {Date} plannedDate the planned date for travel for the itinerary.
+* @param {Date} endDate the end date for travel for the itinerary.
 * @param {Object} location as per traveller request form.
 */
 
@@ -66,12 +67,11 @@ export default ({
 			contactNumber,
 			phoneCode,
 			travellers,
-			plannedDate: new Date(plannedDate),
-			endDate: new Date(endDate),
+			plannedDate: new Date(plannedDate.concat('Z')),
+			endDate: new Date(endDate.concat('Z')),
 			plannedTraveller,
 			location,
 		});
-
 		await itineraryRequest.save();
 		const admin = await AdminModel.findOne({});
 		const createItinerary = new ItineraryModel({

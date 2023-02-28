@@ -2,7 +2,14 @@
 import { ResponseUtility } from 'appknit-backend-bundle';
 import { Types } from 'mongoose';
 import { ItineraryModel } from '../../schemas';
-import { PAGINATION_LIMIT, TRANSPORTATION_TYPE } from '../../constants';
+import {
+	PAGINATION_LIMIT,
+	TRANSPORTATION_TYPE,
+	ZERO,
+	HYPHEN,
+	MONTH_ARRAY,
+} from '../../constants';
+
 /**
 * @description service model function to fetch the listing of
 * a specific transportation of a specific itinerary
@@ -79,8 +86,160 @@ export default ({
 					specialistNote: '$transportation.specialistNote',
 					depart: '$transportation.depart.location',
 					arrival: '$transportation.arrival.location',
-					departDateTime: '$transportation.departDateTime',
-					arrivalDateTime: { $cond: [{ $eq: [transportationType, TRANSPORTATION_TYPE.CAR] }, '$$REMOVE', '$transportation.arrivalDateTime'] },
+					departDate: {
+						$concat: [{
+							$toString: { $dayOfMonth: '$transportation.departDateTime' },
+						}, HYPHEN, {
+							$arrayElemAt: [
+								MONTH_ARRAY,
+								{ $month: '$transportation.departDateTime' },
+							],
+						}, HYPHEN, {
+							$toString: { $year: '$transportation.departDateTime' },
+						}],
+					},
+					departTime: {
+						$concat: [{
+							$toString: {
+								$cond: [{
+									$gt: [{
+										$hour: {
+											date: '$transportation.departDateTime',
+										},
+									}, 12],
+								}, {
+									$cond: [{
+										$gt: [{
+											$subtract: [{
+												$hour: {
+													date: '$transportation.departDateTime',
+												},
+											}, 12],
+										}, 9],
+									}, {
+										$subtract: [{
+											$hour: {
+												date: '$transportation.departDateTime',
+											},
+										}, 12],
+									}, {
+										$concat: [ZERO, {
+											$toString: {
+												$subtract: [{
+													$hour: {
+														date: '$transportation.departDateTime',
+													},
+												}, 12],
+											},
+										}],
+									}],
+								}, { $dateToString: { format: '%H', date: '$transportation.departDateTime' } }],
+							},
+						}, ':', {
+							$concat: [{ $dateToString: { format: '%M', date: '$transportation.departDateTime' } }, ' ', {
+								$cond: [{
+									$gte: [{
+										$hour: {
+											date: '$transportation.departDateTime',
+										},
+									}, 12],
+								}, 'PM', 'AM'],
+							}],
+						}],
+					},
+					arrivalDate: {
+						$cond: [{ $eq: [transportationType, TRANSPORTATION_TYPE.CAR] }, '$$REMOVE', {
+							$concat: [{
+								$toString: { $dayOfMonth: '$transportation.arrivalDateTime' },
+							}, HYPHEN, {
+								$arrayElemAt: [
+									MONTH_ARRAY,
+									{ $month: '$transportation.arrivalDateTime' },
+								],
+							}, HYPHEN, {
+								$toString: { $year: '$transportation.arrivalDateTime' },
+							}],
+						}],
+					},
+					arrivalTime: {
+						$cond: [{ $eq: [transportationType, TRANSPORTATION_TYPE.CAR] }, '$$REMOVE', {
+							$concat: [{
+								$toString: {
+									$cond: [{
+										$gt: [{
+											$hour: {
+												date: '$transportation.arrivalDateTime',
+											},
+										}, 12],
+									}, {
+										$cond: [{
+											$gt: [{
+												$subtract: [{
+													$hour: {
+														date: '$transportation.arrivalDateTime',
+													},
+												}, 12],
+											}, 9],
+										}, {
+											$subtract: [{
+												$hour: {
+													date: '$transportation.arrivalDateTime',
+												},
+											}, 12],
+										}, {
+											$concat: [ZERO, {
+												$toString: {
+													$subtract: [{
+														$hour: {
+															date: '$transportation.arrivalDateTime',
+														},
+													}, 12],
+												},
+											}],
+										}],
+									}, { $dateToString: { format: '%H', date: '$transportation.arrivalDateTime' } }],
+								},
+							}, ':', {
+								$concat: [{ $dateToString: { format: '%M', date: '$transportation.arrivalDateTime' } }, ' ', {
+									$cond: [{
+										$gte: [{
+											$hour: {
+												date: '$transportation.arrivalDateTime',
+											},
+										}, 12],
+									}, 'PM', 'AM'],
+								}],
+							}],
+						}],
+					},
+					departDateTime: {
+						$concat: [{
+							$dateToString: {
+								date: '$transportation.departDateTime',
+								format: '%Y-%m-%d',
+							},
+						}, 'T', {
+							$dateToString: {
+								date: '$transportation.departDateTime',
+								format: '%H:%M:%S',
+							},
+						}],
+					},
+					arrivalDateTime: {
+						$cond: [{ $eq: [transportationType, TRANSPORTATION_TYPE.CAR] }, '$$REMOVE', {
+							$concat: [{
+								$dateToString: {
+									date: '$transportation.arrivalDateTime',
+									format: '%Y-%m-%d',
+								},
+							}, 'T', {
+								$dateToString: {
+									date: '$transportation.arrivalDateTime',
+									format: '%H:%M:%S',
+								},
+							}],
+						}],
+					},
 					userCarDetails: { $cond: [{ $eq: [transportationType, TRANSPORTATION_TYPE.CAR] }, '$transportation.userCarDetails', '$$REMOVE'] },
 					tickets: '$transportation.tickets',
 				},

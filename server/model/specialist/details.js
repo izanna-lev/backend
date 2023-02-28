@@ -7,7 +7,7 @@ import { SpecialistModel } from '../../schemas';
 
 export default ({
 	id,
-	timezone,
+	// timezone,
 }) => new Promise(async (resolve, reject) => {
 	try {
 		const specialist = await SpecialistModel.findOne(
@@ -19,8 +19,8 @@ export default ({
 		if (!specialist) {
 			return reject(ResponseUtility.GENERIC_ERR({ message: 'No Specialist Found!' }));
 		}
-		await SpecialistModel.findOneAndUpdate({ _id: id },
-			{ zone: timezone });
+		// await SpecialistModel.findOneAndUpdate({ _id: id },
+		// 	{ zone: timezone });
 		return resolve(ResponseUtility.SUCCESS({
 			message: 'Specialist Profile fetcheded Successfully!',
 			data: specialist,

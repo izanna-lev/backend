@@ -5,7 +5,12 @@
 /* eslint-disable no-promise-executor-return */
 import { ResponseUtility } from 'appknit-backend-bundle';
 import { ItineraryModel, ItineraryRequestModel } from '../../schemas';
-import { ITINERARY_STATUS, PAGINATION_LIMIT } from '../../constants';
+import {
+	ITINERARY_STATUS,
+	PAGINATION_LIMIT,
+	MONTH_ARRAY,
+	HYPHEN,
+} from '../../constants';
 // import { delete } from 'request-promise';
 
 /**
@@ -206,8 +211,30 @@ export default ({
 					location: '$location',
 					userName: { $concat: ['$firstName', ' ', '$lastName'] },
 					contactNumber: '$contactNumber',
-					plannedDate: '$plannedDate',
-					endDate: '$endDate',
+					plannedDate: {
+						$concat: [{
+							$toString: { $dayOfMonth: '$plannedDate' },
+						}, HYPHEN, {
+							$arrayElemAt: [
+								MONTH_ARRAY,
+								{ $month: '$plannedDate' },
+							],
+						}, HYPHEN, {
+							$toString: { $year: '$plannedDate' },
+						}],
+					},
+					endDate: {
+						$concat: [{
+							$toString: { $dayOfMonth: '$plannedDate' },
+						}, HYPHEN, {
+							$arrayElemAt: [
+								MONTH_ARRAY,
+								{ $month: '$plannedDate' },
+							],
+						}, HYPHEN, {
+							$toString: { $year: '$plannedDate' },
+						}],
+					},
 					plannedTraveller: '$plannedTraveller',
 					specialistRef: { $ifNull: ['$specialist._id', ''] },
 					specialistName: { $ifNull: ['$specialist.name', ''] },

@@ -15,7 +15,6 @@ import {
 import { TYPE_OF_NOTIFICATIONS, USER_FILTER } from '../../constants';
 import { FirebaseNotificationService } from '../../services';
 
-
 /**
 * @description A service model function to publish a notification in system.
 * @author Abhinav Sharma

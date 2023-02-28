@@ -5,8 +5,14 @@
 import { ResponseUtility } from 'appknit-backend-bundle';
 import { Types } from 'mongoose';
 import { ItineraryRequestModel } from '../../schemas';
-import { ITINERARY_DEFAULT_VALUES, ITINERARY_STATUS, ITINERARY_TYPE } from '../../constants';
-
+import {
+	ITINERARY_DEFAULT_VALUES,
+	ITINERARY_STATUS,
+	HYPHEN,
+	MONTH_ARRAY,
+	ZERO,
+	NINE,
+} from '../../constants';
 
 /**
 * @description service model function to fetch the details of an assigned itinerary.
@@ -28,8 +34,62 @@ export default ({
 		const projectQuery = {
 			travellerName: { $concat: ['$firstName', ' ', '$lastName'] },
 			travellerEmail: '$traveller.email',
-			plannedDate: '$plannedDate',
-			endDate: '$endDate',
+			plannedDate: {
+				$concat: [{
+					$toString: { $dayOfMonth: '$plannedDate' },
+				}, HYPHEN, {
+					$cond: [{ $gt: [{ $month: '$plannedDate' }, NINE] }, {
+						$toString: { $month: '$plannedDate' },
+					}, {
+						$concat: [ZERO, {
+							$toString: { $month: '$plannedDate' },
+						}],
+					}],
+				}, HYPHEN, {
+					$toString: { $year: '$plannedDate' },
+				}],
+			},
+			plannedDateFormat: {
+				$concat: [{
+					$dateToString: {
+						date: '$plannedDate',
+						format: '%Y-%m-%d',
+					},
+				}, 'T', {
+					$dateToString: {
+						date: '$plannedDate',
+						format: '%H:%M:%S',
+					},
+				}],
+			},
+			endDate: {
+				$concat: [{
+					$toString: { $dayOfMonth: '$endDate' },
+				}, HYPHEN, {
+					$cond: [{ $gt: [{ $month: '$endDate' }, NINE] }, {
+						$toString: { $month: '$endDate' },
+					}, {
+						$concat: [ZERO, {
+							$toString: { $month: '$endDate' },
+						}],
+					}],
+				}, HYPHEN, {
+					$toString: { $year: '$endDate' },
+				}],
+			},
+			endDateFormat: {
+				$concat: [{
+					$dateToString: {
+						date: '$endDate',
+						format: '%Y-%m-%d',
+					},
+				}, 'T', {
+					$dateToString: {
+						date: '$endDate',
+						format: '%H:%M:%S',
+					},
+				}],
+			},
 			plannedTraveller: '$plannedTraveller',
 		};
 		if (type === 'admin') {
@@ -67,8 +127,56 @@ export default ({
 									itineraryType: '$itineraryType',
 									specialistNote: '$specialistNote',
 									specificRestrictionsAndRegulations: '$specificRestrictionsAndRegulations',
-									fromDate: '$fromDate',
-									toDate: '$toDate',
+									fromDate: {
+										$concat: [{
+											$toString: { $dayOfMonth: '$fromDate' },
+										}, HYPHEN, {
+											$arrayElemAt: [
+												MONTH_ARRAY,
+												{ $month: '$fromDate' },
+											],
+										}, HYPHEN, {
+											$toString: { $year: '$fromDate' },
+										}],
+									},
+									toDate: {
+										$concat: [{
+											$toString: { $dayOfMonth: '$toDate' },
+										}, HYPHEN, {
+											$arrayElemAt: [
+												MONTH_ARRAY,
+												{ $month: '$toDate' },
+											],
+										}, HYPHEN, {
+											$toString: { $year: '$toDate' },
+										}],
+									},
+									fromDateFormat: {
+										$concat: [{
+											$dateToString: {
+												date: '$fromDate',
+												format: '%Y-%m-%d',
+											},
+										}, 'T', {
+											$dateToString: {
+												date: '$fromDate',
+												format: '%H:%M:%S',
+											},
+										}],
+									},
+									toDateFormat: {
+										$concat: [{
+											$dateToString: {
+												date: '$toDate',
+												format: '%Y-%m-%d',
+											},
+										}, 'T', {
+											$dateToString: {
+												date: '$toDate',
+												format: '%H:%M:%S',
+											},
+										}],
+									},
 									plannedTraveller: '$plannedTraveller',
 									price: '$price',
 									image: '$image',
@@ -215,8 +323,70 @@ export default ({
 								name: { $ifNull: ['$itinerary.itineraryDetails.name', '$location'] },
 								email: { $ifNull: ['$itinerary.itineraryDetails.email', '$traveller.email'] },
 								itineraryType: { $ifNull: ['$itinerary.itineraryDetails.itineraryType', ITINERARY_DEFAULT_VALUES] },
-								fromDate: { $ifNull: ['$itinerary.itineraryDetails.fromDate', '$plannedDate'] },
-								toDate: { $ifNull: ['$itinerary.itineraryDetails.fromDate', '$endDate'] },
+								fromDate: {
+									$ifNull: ['$itinerary.itineraryDetails.fromDate', {
+										$concat: [{
+											$toString: { $dayOfMonth: '$plannedDate' },
+										}, HYPHEN, {
+											$cond: [{ $gt: [{ $month: '$plannedDate' }, NINE] }, {
+												$toString: { $month: '$plannedDate' },
+											}, {
+												$concat: [ZERO, {
+													$toString: { $month: '$plannedDate' },
+												}],
+											}],
+										}, HYPHEN, {
+											$toString: { $year: '$plannedDate' },
+										}],
+									}],
+								},
+								toDate: {
+									$ifNull: ['$itinerary.itineraryDetails.toDate', {
+										$concat: [{
+											$toString: { $dayOfMonth: '$endDate' },
+										}, HYPHEN, {
+											$cond: [{ $gt: [{ $month: '$endDate' }, NINE] }, {
+												$toString: { $month: '$endDate' },
+											}, {
+												$concat: [ZERO, {
+													$toString: { $month: '$endDate' },
+												}],
+											}],
+										}, HYPHEN, {
+											$toString: { $year: '$endDate' },
+										}],
+									}],
+								},
+								fromDateFormat: {
+									$ifNull: ['$itinerary.itineraryDetails.fromDateFormat', {
+										$concat: [{
+											$dateToString: {
+												date: '$plannedDate',
+												format: '%Y-%m-%d',
+											},
+										}, 'T', {
+											$dateToString: {
+												date: '$plannedDate',
+												format: '%H:%M:%S',
+											},
+										}],
+									}],
+								},
+								toDateFormat: {
+									$ifNull: ['$itinerary.itineraryDetails.toDateFormat', {
+										$concat: [{
+											$dateToString: {
+												date: '$endDate',
+												format: '%Y-%m-%d',
+											},
+										}, 'T', {
+											$dateToString: {
+												date: '$endDate',
+												format: '%H:%M:%S',
+											},
+										}],
+									}],
+								},
 								plannedTraveller: { $ifNull: ['$itinerary.itineraryDetails.plannedTraveller', '$plannedTraveller'] },
 								price: { $ifNull: ['$itinerary.itineraryDetails.price', ITINERARY_DEFAULT_VALUES] },
 								duration: { $ifNull: ['$itinerary.itineraryDetails.duration', ITINERARY_DEFAULT_VALUES] },
