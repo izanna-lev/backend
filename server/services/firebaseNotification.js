@@ -24,6 +24,7 @@ export default ({
 	device,
 	title = APP_NAME,
 	body = '',
+	badge,
 	dataObject = {},
 	payload = {},
 	userDetails = {},
@@ -42,6 +43,7 @@ export default ({
 			'Content-Type': 'application/json',
 			Authorization: `key=${FCM_SERVER_KEY}`,
 		};
+
 		const data = {
 			reference: payload.reference,
 			type,
@@ -50,10 +52,17 @@ export default ({
 			payload,
 			sound: 'default',
 		};
+
+		if (badge !== null) {
+			data.badge = badge;
+		}
+
 		const payloadData = {
 			registration_ids: deviceTokens,
 			priority: 'high',
 			timeToLive: 86400,
+			channel_id: 'onsite_notification',
+			ttl: '0',
 			body,
 			data: {
 				type,
@@ -61,6 +70,7 @@ export default ({
 				userDetails: userDetails || {},
 			},
 		};
+
 		Object.assign(payloadData, { notification: data });
 
 		const options = {

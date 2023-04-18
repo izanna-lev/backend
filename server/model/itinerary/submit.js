@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-async-promise-executor */
 /* eslint-disable import/named */
@@ -129,17 +130,20 @@ export default ({
 		});
 		await notification.save();
 		const traveller = await TravellerModel.findOne({ _id: itinerary.travellerRef });
+		const notificationCount = await NotificationModel.find({ userRef: itinerary.travellerRef, seen: false }).count();
 		if (traveller.fcmToken && traveller.device) {
 			await FirebaseNotificationService({
 				deviceTokens: [traveller.fcmToken],
 				device: traveller.device,
 				type: TYPE_OF_NOTIFICATIONS.ITINERARY_SUBMITTED,
 				body: notification.text,
+				badge: notificationCount,
 				payload: {
 					body: notification.text,
 					notificationFrom: id,
 					userRef: traveller._id,
 					itineraryRef: itinerary._id,
+					badge: notificationCount || 0,
 				},
 				reference: notification._id,
 				title: 'Onsite',

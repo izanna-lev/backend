@@ -29,7 +29,7 @@ import {
 export default ({
 	id,
 	itineraryRef,
-	date,
+	// date,
 	// timezone,
 }) => new Promise(async (resolve, reject) => {
 	try {
@@ -40,10 +40,10 @@ export default ({
 		if (!checkItinerary) {
 			return reject(ResponseUtility.GENERIC_ERR({ message: 'Invalid itineraryRef!' }));
 		}
-		let filterDate;
-		if (date) {
-			filterDate = new Date(date);
-		}
+		// let filterDate;
+		// if (date) {
+		// 	filterDate = new Date(date);
+		// }
 
 		const [itinerary] = await ItineraryModel.aggregate([
 			{
@@ -272,26 +272,41 @@ export default ({
 						{
 							$addFields: {
 								date: {
-									$dateAdd: {
-										startDate: {
-											$dateTrunc: {
-												date: {
-													$subtract: [{
-														$dateAdd: {
-															startDate: '$$fromDate',
-															unit: 'day',
-															amount: '$day',
-														},
-													}, 1],
+									$dateTrunc: {
+										date: {
+											$subtract: [{
+												$dateAdd: {
+													startDate: '$$fromDate',
+													unit: 'day',
+													amount: '$day',
 												},
-												unit: 'hour',
-												binSize: 1,
-											},
+											}, 1],
 										},
-										unit: 'minute',
-										amount: 59,
+										unit: 'day',
+									// binSize: 1,
 									},
 								},
+								// {
+								// 	$dateAdd: {
+								// 		startDate: {
+								// 			$dateTrunc: {
+								// 				date: {
+								// 					$subtract: [{
+								// 						$dateAdd: {
+								// 							startDate: '$$fromDate',
+								// 							unit: 'day',
+								// 							amount: '$day',
+								// 						},
+								// 					}, 1],
+								// 				},
+								// 				unit: 'hour',
+								// 				// binSize: 1,
+								// 			},
+								// 		},
+								// 		unit: 'minute',
+								// 		amount: 59,
+								// 	},
+								// },
 								detailType: DETAIL_TYPE.NOTE,
 							},
 						},
@@ -525,7 +540,7 @@ export default ({
 					'itinerary.arrival': '$$REMOVE',
 				},
 			},
-			{ $sort: { 'itinerary.date': 1 } },
+			{ $sort: { 'itinerary.date': -1 } },
 			{
 				$addFields: {
 					dates: {
@@ -642,33 +657,34 @@ export default ({
 					},
 					additionalInformation: { $first: '$specificRestrictionsAndRegulations' },
 					itinerary: {
-						$push: {
-							$cond: [
-								{
-									$eq: [
-										{
-											$dateToString: {
-												date: '$itinerary.date',
-												format: '%Y-%m-%d',
-											},
-										},
-										{
-											$dateToString: {
-												date: {
-													$ifNull: [
-														filterDate,
-														'$fromDate',
-													],
-												},
-												format: '%Y-%m-%d',
-											},
-										},
-									],
-								},
-								'$itinerary',
-								'$$REMOVE',
-							],
-						},
+						$push: '$itinerary',
+						// {
+						// 	$cond: [
+						// 		{
+						// 			$eq: [
+						// 				{
+						// 					$dateToString: {
+						// 						date: '$itinerary.date',
+						// 						format: '%Y-%m-%d',
+						// 					},
+						// 				},
+						// 				{
+						// 					$dateToString: {
+						// 						date: {
+						// 							$ifNull: [
+						// 								filterDate,
+						// 								'$fromDate',
+						// 							],
+						// 						},
+						// 						format: '%Y-%m-%d',
+						// 					},
+						// 				},
+						// 			],
+						// 		},
+						// 		'$itinerary',
+						// 		'$$REMOVE',
+						// 	],
+						// },
 					},
 				},
 			},

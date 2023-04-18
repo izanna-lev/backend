@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 /* eslint-disable no-mixed-spaces-and-tabs */
 /* eslint-disable max-len */
 /* eslint-disable no-underscore-dangle */
@@ -31,48 +32,30 @@ export default ({
 		if (!travellerList.length) {
 			return reject(ResponseUtility.GENERIC_ERR({ message: 'No valid travellers present for notifications' }));
 		}
-		const ios = [];
-		const android = [];
-		if (travellerList) {
-			travellerList.forEach(async (user) => {
-				if (user.device === 'ios' || user.device === 'iOS') {
-					ios.push(user.fcmToken);
-			    }
-			    if (user.device === 'android') {
-					android.push(user.fcmToken);
-			    }
-				const notification = new NotificationModel({
-					userRef: user._id,
-					type: TYPE_OF_NOTIFICATIONS.SPECIALIST,
-					image: specialist.image,
-					notificationFrom: id,
-					text: message,
-				});
-				await notification.save();
-			});
 
-			const payload = {
-				type: TYPE_OF_NOTIFICATIONS.SPECIALIST,
-				image: specialist.image,
-				body: message.trim(),
-				title: 'Onsite',
-				reference: new ObjectId(),
-			};
-			if (ios.length) {
-				await FirebaseNotificationService({
-					deviceTokens: ios,
-					device: 'ios',
-					...payload,
-					payload,
-				});
-			}
-			if (android.length) {
-				await FirebaseNotificationService({
-					deviceTokens: android,
-					device: 'android',
-					...payload,
-					payload,
-				});
+		if (travellerList) {
+			for (let i = 0; i < travellerList.length; i += 1) {
+				const notificationCount = await NotificationModel.find(
+					{ userRef: travellerList[i]._id, seen: false },
+				).count();
+
+				const payload = {
+					type: TYPE_OF_NOTIFICATIONS.ADMIN,
+					body: message.trim(),
+					title: 'Onsite',
+					reference: new ObjectId(),
+					webUser: [],
+				};
+
+				if (travellerList[i].fcmToken !== '' && travellerList[i].device !== '') {
+					await FirebaseNotificationService({
+						deviceTokens: travellerList[i].fcmToken,
+						badge: notificationCount,
+						device: travellerList[i].device,
+						...payload,
+						payload,
+					});
+				}
 			}
 		}
 		return resolve(ResponseUtility.SUCCESS({ message: 'Notifications sent successfully!' }));

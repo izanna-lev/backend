@@ -4,6 +4,7 @@
 import {
 	AuthenticationControllers,
 	SpecialistControllers,
+	NotificationControllers,
 } from '../controllers';
 import { MultipartService } from '../services';
 
@@ -17,4 +18,5 @@ export default (app) => {
 	app.post(`${prefix}update`, MultipartService, AuthenticationControllers.authenticateSpecialist, SpecialistControllers.update);
 	app.post(`${prefix}cancelRequestList`, AuthenticationControllers.authenticateSpecialist, SpecialistControllers.cancelRequestList);
 	app.post(`${prefix}broadcast`, AuthenticationControllers.authenticateSpecialist, SpecialistControllers.broadcast);
+	app.post(`${prefix}template`, AuthenticationControllers.authenticateSpecialist, NotificationControllers.template);
 };

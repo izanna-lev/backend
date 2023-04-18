@@ -4,7 +4,7 @@ import {
 	ResponseUtility,
 } from 'appknit-backend-bundle';
 import { Types } from 'mongoose';
-import { USER_TYPE } from '../../constants';
+import { USER_TYPE, MONTH_ARRAY, HYPHEN } from '../../constants';
 import {
 	ChannelToUserModel, ItineraryModel, MessageModel, BlockModel,
 } from '../../schemas';
@@ -76,7 +76,31 @@ export default ({
 					location: { $ifNull: ['$location.location', '$user.location'] },
 					itineraryStatus: '$itineraryStatus',
 					image: '$image',
-					fromDate: { $ifNull: ['$fromDate', '$user.plannedDate'] },
+					fromDate: {
+						$ifNull: [{
+							$concat: [{
+								$toString: { $dayOfMonth: '$fromDate' },
+							}, HYPHEN, {
+								$arrayElemAt: [
+									MONTH_ARRAY,
+									{ $month: '$fromDate' },
+								],
+							}, HYPHEN, {
+								$toString: { $year: '$fromDate' },
+							}],
+						}, {
+							$concat: [{
+								$toString: { $dayOfMonth: '$user.plannedDate' },
+							}, HYPHEN, {
+								$arrayElemAt: [
+									MONTH_ARRAY,
+									{ $month: '$user.plannedDate' },
+								],
+							}, HYPHEN, {
+								$toString: { $year: '$user.plannedDate' },
+							}],
+						}],
+					},
 					otherUserName: '$user.name',
 					userImage: '$user.image',
 					blockedByTraveller: { $cond: [{ $eq: ['$block', []] }, false, true] },
@@ -93,7 +117,31 @@ export default ({
 					location: { $ifNull: ['$location.location', '$user.location'] },
 					itineraryStatus: '$itineraryStatus',
 					image: '$image',
-					fromDate: { $ifNull: ['$fromDate', '$user.plannedDate'] },
+					fromDate: {
+						$ifNull: [{
+							$concat: [{
+								$toString: { $dayOfMonth: '$fromDate' },
+							}, HYPHEN, {
+								$arrayElemAt: [
+									MONTH_ARRAY,
+									{ $month: '$fromDate' },
+								],
+							}, HYPHEN, {
+								$toString: { $year: '$fromDate' },
+							}],
+						}, {
+							$concat: [{
+								$toString: { $dayOfMonth: '$user.plannedDate' },
+							}, HYPHEN, {
+								$arrayElemAt: [
+									MONTH_ARRAY,
+									{ $month: '$user.plannedDate' },
+								],
+							}, HYPHEN, {
+								$toString: { $year: '$user.plannedDate' },
+							}],
+						}],
+					},
 					otherUserName: '$user.name',
 					userImage: '$user.image',
 				},

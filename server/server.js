@@ -14,18 +14,13 @@ import path from 'path';
 import flash from 'connect-flash';
 import passport from 'passport';
 import cors from 'cors';
-import https from 'https';
-// import http from 'http';
 import redis from 'socket.io-redis';
 import {
 	LogServices, TokenUtility,
 } from 'appknit-backend-bundle';
 import ActivateRoutes from './routes';
-// import { SessionModel } from './schemas';
 import { startSocket } from './services/socket';
 import {
-	CERT,
-	PRIVATE_KEY,
 	secretString,
 	REDIS_HOST,
 	REDIS_PORT,
@@ -57,38 +52,20 @@ app.use(flash());
 // call this to activate routes or define inside the route directory
 ActivateRoutes(app);
 
-const appHttpsServer = app;
-
-const options = {
-	key: Buffer.from(PRIVATE_KEY, 'base64').toString('ascii'),
-	cert: Buffer.from(CERT, 'base64').toString('ascii'),
-	keepAlive: true,
-};
-
-options.agent = new https.Agent(options);
-
-const httpsServer = https.createServer(options,
-	appHttpsServer).listen(4000, () => {
-	console.log('Secure server is runing at port 4000');
-});
-// const httpsServer = http.createServer(
-// 	appHttpsServer,
-// ).listen(4000, () => {
-// 	console.log('Secure server is runing at port 4000');
-// });
 const env = process.env.NODE_ENV ? process.env.NODE_ENV : 'development';
 
-appHttpsServer.get('/', (req, res) => res.send(`<h1>{{app_name}} ${env} environment</h1>`));
+app.get('/', (req, res) => res.send(`<h1>{{app_name}} ${env} environment</h1>`));
 
-const io = require('socket.io')(httpsServer, {
+const port = 3000;
+
+const server = app.listen(port, () => global.logger.info(`Backend is running on port ${port}`));
+
+const io = require('socket.io')(server, {
 	transports: ['websocket'],
 	serveClient: true,
 });
 
 io.adapter(redis({ host: REDIS_HOST, port: REDIS_PORT, auth_pass: REDIS_PASSWORD }));
-
-// const processedMessages = new Set();
-// const activeConnections = new Map();
 
 io.use((socket, next) => {
 	if (socket.handshake.auth || socket.handshake.query.authorization
@@ -96,8 +73,6 @@ io.use((socket, next) => {
 		const decoded = TokenUtility.decodeToken(socket.handshake.auth.token
 						|| socket.handshake.headers.authorization);
 		if (decoded) {
-			// socket.processedMessages = processedMessages;
-			// socket.activeConnections = activeConnections;
 			return next();
 		}
 		return next(new Error('authentication error'));

@@ -135,6 +135,7 @@ export default ({
 			},
 			{ $unwind: { path: '$specialist', preserveNullAndEmptyArrays: true } },
 		]);
+
 		const notification = await NotificationModel({
 			userRef: data.travellerRef,
 			type: TYPE_OF_NOTIFICATIONS.ITINERARY_EDITED,
@@ -145,17 +146,21 @@ export default ({
 		});
 		await notification.save();
 
+		const notificationCount = await NotificationModel.find({ userRef: data.travellerRef, seen: false }).count();
+
 		if (data.traveller.fcmToken && data.traveller.device) {
 			await FirebaseNotificationService({
 				deviceTokens: [data.traveller.fcmToken],
 				device: data.traveller.device,
 				type: TYPE_OF_NOTIFICATIONS.ITINERARY_EDITED,
 				body: notification.text,
+				badge: notificationCount,
 				payload: {
 					body: notification.text,
 					notificationFrom: id,
 					userRef: data.traveller._id,
 					itineraryRef: data._id,
+					badge: notificationCount || 0,
 				},
 				title: 'Onsite',
 			});

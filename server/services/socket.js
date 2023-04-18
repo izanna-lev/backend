@@ -161,13 +161,31 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 			}
 		});
 
+		// socket.on('reconnect', (attemptNumber) => {
+		// 	global.logger.info(`Client ${socket.id} reconnected after attempt number ${attemptNumber}`);
+		// });
+
+		// socket.on('reconnect_error', (error) => {
+		// 	global.logger.info(`Client ${socket.id} reconnection error:`, error);
+		// });
+
+		// socket.on('reconnect_failed', () => {
+		// 	global.logger.info(`Client ${socket.id} reconnection failed`);
+		// });
+
 		socket.on('message', async (data, callback) => {
 			global.logger.info('Message!');
 			if (!callback) {
 				callback = function () {
 				};
 			}
-
+			// const messageId = `${data.message}-${Math.random().toString(36).substring(2)}`;
+			// if (socket.processedMessages.has(messageId)) {
+			// 	console.log('Ignoring duplicate message:', data.message);
+			// 	return;
+			// }
+			// console.log('Processing message:', data.message);
+			// socket.processedMessages.add(messageId);
 			if (data.channelRef && data.message) {
 				const messageObject = new MessageModel({
 					userRef: data.id,
@@ -409,6 +427,7 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 				}).then((chat) => {
 					io.sockets.in(admin._id.valueOf()).emit('chatList', { data: chat.data, totalUnseenChats: chat.totalUnseenChats });
 				});
+
 				if (!checkBlock) {
 					if (otherUser && adminOnly === false) {
 						const notification = new NotificationModel({
@@ -423,13 +442,19 @@ exports.startSocket = socket => new Promise(async (resolve, reject) => {
 								name: itinerary.specialist.name,
 							} : { id: admin._id.valueOf(), name: 'Admin' },
 						});
-						notification.save();
+						await notification.save();
+
+						const notificationCount = await NotificationModel.find(
+							{ userRef: itinerary.travellerRef, seen: false },
+						).count();
+
 						if (otherUser.fcmToken) {
-							FirebaseNotificationService({
+							await FirebaseNotificationService({
 								deviceTokens: [otherUser.fcmToken],
 								device: otherUser.device,
 								type: TYPE_OF_NOTIFICATIONS.MESSAGE,
 								body: data.message,
+								badge: notificationCount,
 								payload: {
 									body: data.message,
 									notificationFrom: data.id,

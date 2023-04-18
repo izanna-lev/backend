@@ -55,62 +55,41 @@ export default ({
 				{ message: 'No valid users present for notifications' },
 			));
 		}
-		const ios = [];
-		const android = [];
-		const web = [];
+
 		const webUser = [];
 		if (users) {
 			for (let i = 0; i < users.length; i += 1) {
-				if (users[i].device === 'ios' || users[i].device === 'iOS') {
-					ios.push(users[i].fcmToken);
-			    }
-			    if (users[i].device === 'android') {
-					android.push(users[i].fcmToken);
-			    }
-				if (users[i].device === 'web') {
-					web.push(users[i].fcmToken);
-					webUser.push(users[i]._id);
-				}
 				const notification = new NotificationModel({
 					userRef: users[i]._id,
 					type: TYPE_OF_NOTIFICATIONS.ADMIN,
 					notificationFrom: id,
 					text: message,
 				});
+
 				await notification.save();
-			}
-			const payload = {
-				type: TYPE_OF_NOTIFICATIONS.ADMIN,
-				body: message.trim(),
-				title: 'Onsite',
-				reference: new ObjectId(),
-				webUser: webUser || [],
-			};
-			if (ios.length) {
-				await FirebaseNotificationService({
-					deviceTokens: ios,
-					device: 'ios',
-					type: payload.type,
-					title: payload.title,
-					payload,
-				});
-			}
-			if (android.length) {
-				await FirebaseNotificationService({
-					deviceTokens: android,
-					device: 'android',
-					type: payload.type,
-					title: payload.title,
-					payload,
-				});
-			}
-			if (web.length) {
-				await FirebaseNotificationService({
-					deviceTokens: web,
-					device: 'web',
-					...payload,
-					payload,
-				});
+
+				const notificationCount = await NotificationModel.find(
+					{ userRef: users[i]._id, seen: false },
+				).count();
+
+				const payload = {
+					type: TYPE_OF_NOTIFICATIONS.ADMIN,
+					body: message.trim(),
+					title: 'Onsite',
+					reference: new ObjectId(),
+					webUser: webUser || [],
+				};
+
+				if (users[i].fcmToken !== '' && users[i].device !== '') {
+					await FirebaseNotificationService({
+						deviceTokens: [users[i].fcmToken],
+						badge: notificationCount,
+						device: users[i].device,
+						type: payload.type,
+						title: payload.title,
+						payload,
+					});
+				}
 			}
 		}
 		return resolve(ResponseUtility.SUCCESS({ message: 'All Notifications were sent successfully' }));
